@@ -20,6 +20,11 @@ from scrapers import (
     scrape_chronicle,
     scrape_insidehighered,
     scrape_the_unijobs,
+    scrape_euraxess,
+    scrape_science_careers,
+    scrape_cra,
+    scrape_asa,
+    scrape_findapostdoc,
     scrape_all,
 )
 
@@ -333,6 +338,132 @@ class TestScrapeTHEUniJobs:
         assert jobs == []
 
 
+# ── New scrapers: EURAXESS, ScienceCareers, CRA, ASA, FindAPostDoc ───────────
+
+EURAXESS_HTML = """
+<html><body>
+<article class="job">
+  <h2><a href="/jobs/12345">Postdoc in AI - ETH Zurich</a></h2>
+  <span class="country">Switzerland</span>
+</article>
+<article class="job">
+  <h2><a href="/jobs/67890">Postdoctoral Fellow Social Science - Paris</a></h2>
+  <span class="country">France</span>
+</article>
+</body></html>
+"""
+
+class TestScrapeEuraxess:
+    def test_parses_jobs(self):
+        with patch("scrapers.requests.get", return_value=make_response(EURAXESS_HTML)):
+            jobs = scrape_euraxess()
+        assert len(jobs) == 2
+
+    def test_job_fields(self):
+        with patch("scrapers.requests.get", return_value=make_response(EURAXESS_HTML)):
+            jobs = scrape_euraxess()
+        assert jobs[0]["title"] == "Postdoc in AI - ETH Zurich"
+        assert "euraxess.ec.europa.eu/jobs/12345" in jobs[0]["url"]
+        assert jobs[0]["source"] == "EURAXESS"
+
+    def test_returns_empty_on_network_error(self):
+        with patch("scrapers.requests.get", side_effect=Exception("timeout")):
+            jobs = scrape_euraxess()
+        assert jobs == []
+
+
+SCIENCECAREERS_HTML = """
+<html><body>
+<li class="job">
+  <h3><a href="/job/55001/postdoc-cs">Postdoc in Computer Science</a></h3>
+  <span class="location">Boston, MA</span>
+</li>
+</body></html>
+"""
+
+class TestScrapeScienceCareers:
+    def test_parses_jobs(self):
+        with patch("scrapers.requests.get", return_value=make_response(SCIENCECAREERS_HTML)):
+            jobs = scrape_science_careers()
+        assert len(jobs) == 1
+        assert jobs[0]["title"] == "Postdoc in Computer Science"
+        assert jobs[0]["source"] == "ScienceCareers"
+
+    def test_returns_empty_on_network_error(self):
+        with patch("scrapers.requests.get", side_effect=Exception("timeout")):
+            jobs = scrape_science_careers()
+        assert jobs == []
+
+
+CRA_HTML = """
+<html><body>
+<div class="job">
+  <h2><a href="/ads/99001">Postdoctoral Researcher - ML Systems</a></h2>
+  <span class="location">Seattle, WA</span>
+</div>
+</body></html>
+"""
+
+class TestScrapeCRA:
+    def test_parses_jobs(self):
+        with patch("scrapers.requests.get", return_value=make_response(CRA_HTML)):
+            jobs = scrape_cra()
+        assert len(jobs) == 1
+        assert jobs[0]["title"] == "Postdoctoral Researcher - ML Systems"
+        assert jobs[0]["source"] == "CRA"
+
+    def test_returns_empty_on_network_error(self):
+        with patch("scrapers.requests.get", side_effect=Exception("timeout")):
+            jobs = scrape_cra()
+        assert jobs == []
+
+
+ASA_HTML = """
+<html><body>
+<li class="jlr">
+  <h2><a href="/job/44001/postdoc-sociology">Postdoc in Medical Sociology</a></h2>
+  <span class="location">Ann Arbor, MI</span>
+</li>
+</body></html>
+"""
+
+class TestScrapeASA:
+    def test_parses_jobs(self):
+        with patch("scrapers.requests.get", return_value=make_response(ASA_HTML)):
+            jobs = scrape_asa()
+        assert len(jobs) == 1
+        assert jobs[0]["title"] == "Postdoc in Medical Sociology"
+        assert jobs[0]["source"] == "ASACareerCenter"
+
+    def test_returns_empty_on_network_error(self):
+        with patch("scrapers.requests.get", side_effect=Exception("timeout")):
+            jobs = scrape_asa()
+        assert jobs == []
+
+
+FINDAPOSTDOC_HTML = """
+<html><body>
+<div class="job">
+  <h3><a href="/postdoc/33001">Postdoc Fellow - Cognitive Psychology</a></h3>
+  <span class="location">London, UK</span>
+</div>
+</body></html>
+"""
+
+class TestScrapeFindAPostDoc:
+    def test_parses_jobs(self):
+        with patch("scrapers.requests.get", return_value=make_response(FINDAPOSTDOC_HTML)):
+            jobs = scrape_findapostdoc()
+        assert len(jobs) == 1
+        assert jobs[0]["title"] == "Postdoc Fellow - Cognitive Psychology"
+        assert jobs[0]["source"] == "FindAPostDoc"
+
+    def test_returns_empty_on_network_error(self):
+        with patch("scrapers.requests.get", side_effect=Exception("timeout")):
+            jobs = scrape_findapostdoc()
+        assert jobs == []
+
+
 # ── scrape_all integration ───────────────────────────────────────────────────
 
 class TestScrapeAll:
@@ -352,15 +483,20 @@ class TestScrapeAll:
             "scrape_chronicle":           make_mock("CHR", "G"),
             "scrape_insidehighered":      make_mock("IHE", "H"),
             "scrape_the_unijobs":         make_mock("THE", "I"),
+            "scrape_euraxess":            make_mock("EUR", "J"),
+            "scrape_science_careers":     make_mock("SC",  "K"),
+            "scrape_cra":                 make_mock("CRA", "L"),
+            "scrape_asa":                 make_mock("ASA", "M"),
+            "scrape_findapostdoc":        make_mock("FAP", "N"),
         }
         patches = [patch(f"scrapers.{k}", v) for k, v in mocks.items()]
         with ExitStack() as stack:
             for p in patches:
                 stack.enter_context(p)
             jobs = scrape_all()
-        assert len(jobs) == 9
+        assert len(jobs) == 14
         titles = [j["title"] for j in jobs]
-        assert all(t in titles for t in list("ABCDEFGHI"))
+        assert all(t in titles for t in list("ABCDEFGHIJKLMN"))
 
     def test_partial_failure_still_returns_others(self):
         """If one scraper fails, others still return results."""

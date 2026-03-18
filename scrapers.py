@@ -267,6 +267,121 @@ def scrape_the_unijobs():
     return jobs
 
 
+# ── EURAXESS (EU Official Researcher Portal) ─────────────────────────────────
+
+def scrape_euraxess():
+    jobs = []
+    try:
+        url = "https://euraxess.ec.europa.eu/jobs/search?keywords=postdoc&order=field_application_deadline&sort=desc"
+        soup = _get(url)
+        for item in soup.select("article.job, div.job-item, li.views-row, div[class*='job-result']"):
+            a = item.select_one("h2 a, h3 a, a.job-title, a[href*='/jobs/']")
+            if not a:
+                continue
+            title = a.get_text(strip=True)
+            href = a.get("href", "")
+            link = f"https://euraxess.ec.europa.eu{href}" if href.startswith("/") else href
+            loc_el = item.select_one(".country, .location, [class*='country'], [class*='location']")
+            location = loc_el.get_text(strip=True) if loc_el else ""
+            if title:
+                jobs.append({"title": title, "url": link, "location": location, "source": "EURAXESS"})
+    except Exception as e:
+        logger.error(f"EURAXESS scrape failed: {e}")
+    return jobs
+
+
+# ── Science Careers (AAAS) ────────────────────────────────────────────────────
+
+def scrape_science_careers():
+    jobs = []
+    try:
+        url = "https://jobs.sciencecareers.org/jobs/postdoc/?Keywords=postdoc&sortby=date"
+        soup = _get(url)
+        for item in soup.select("li.job, article.job, div.job-result, div[class*='job-item']"):
+            a = item.select_one("h2 a, h3 a, a.job-title, a[href*='/job/']")
+            if not a:
+                continue
+            title = a.get_text(strip=True)
+            href = a.get("href", "")
+            link = f"https://jobs.sciencecareers.org{href}" if href.startswith("/") else href
+            loc_el = item.select_one(".location, [class*='location']")
+            location = loc_el.get_text(strip=True) if loc_el else ""
+            if title:
+                jobs.append({"title": title, "url": link, "location": location, "source": "ScienceCareers"})
+    except Exception as e:
+        logger.error(f"ScienceCareers scrape failed: {e}")
+    return jobs
+
+
+# ── CRA Career Center (Computer Science) ─────────────────────────────────────
+
+def scrape_cra():
+    jobs = []
+    try:
+        url = "https://cra.org/ads/?type=postdoc"
+        soup = _get(url)
+        for item in soup.select("div.job, article.job, li.job-listing, div[class*='ad-item']"):
+            a = item.select_one("h2 a, h3 a, a.job-title, a[href*='/ads/']")
+            if not a:
+                continue
+            title = a.get_text(strip=True)
+            href = a.get("href", "")
+            link = f"https://cra.org{href}" if href.startswith("/") else href
+            loc_el = item.select_one(".location, [class*='location']")
+            location = loc_el.get_text(strip=True) if loc_el else ""
+            if title:
+                jobs.append({"title": title, "url": link, "location": location, "source": "CRA"})
+    except Exception as e:
+        logger.error(f"CRA scrape failed: {e}")
+    return jobs
+
+
+# ── ASA Career Center (Sociology) ────────────────────────────────────────────
+
+def scrape_asa():
+    jobs = []
+    try:
+        url = "https://careercenter.asanet.org/jobs/postdoctoral/sociology/"
+        soup = _get(url)
+        for item in soup.select("li.jlr, article.job, div.job-result, div[class*='listing']"):
+            a = item.select_one("h2 a, h3 a, a[href*='/job/']")
+            if not a:
+                continue
+            title = a.get_text(strip=True)
+            href = a.get("href", "")
+            link = f"https://careercenter.asanet.org{href}" if href.startswith("/") else href
+            loc_el = item.select_one(".location, [class*='location']")
+            location = loc_el.get_text(strip=True) if loc_el else ""
+            if title:
+                jobs.append({"title": title, "url": link, "location": location, "source": "ASACareerCenter"})
+    except Exception as e:
+        logger.error(f"ASA scrape failed: {e}")
+    return jobs
+
+
+# ── FindAPostDoc.com ──────────────────────────────────────────────────────────
+
+def scrape_findapostdoc():
+    jobs = []
+    try:
+        url = "https://www.findapostdoc.com/"
+        soup = _get(url)
+        for item in soup.select("div.job, article.job, li.job-item, div[class*='postdoc']"):
+            a = item.select_one("h2 a, h3 a, a.job-title, a[href*='/postdoc/']")
+            if not a:
+                continue
+            title = a.get_text(strip=True)
+            href = a.get("href", "")
+            link = f"https://www.findapostdoc.com{href}" if href.startswith("/") else href
+            loc_el = item.select_one(".location, [class*='location']")
+            location = loc_el.get_text(strip=True) if loc_el else ""
+            if title:
+                jobs.append({"title": title, "url": link, "location": location, "source": "FindAPostDoc"})
+    except Exception as e:
+        logger.error(f"FindAPostDoc scrape failed: {e}")
+    return jobs
+
+
 def scrape_all():
     """Run all scrapers and return combined job list."""
     all_jobs = []
@@ -280,6 +395,11 @@ def scrape_all():
         scrape_chronicle,
         scrape_insidehighered,
         scrape_the_unijobs,
+        scrape_euraxess,
+        scrape_science_careers,
+        scrape_cra,
+        scrape_asa,
+        scrape_findapostdoc,
     ]:
         results = fn()
         logger.info(f"{fn.__name__}: {len(results)} jobs fetched")
