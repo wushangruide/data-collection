@@ -3,7 +3,7 @@ Server酱 push notification to WeChat.
 """
 import logging
 import requests
-from config import SERVERCHAN_KEY
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def push_jobs(jobs: list[dict]):
     """Push a batch of new jobs via Server酱."""
     if not jobs:
         return
-    if SERVERCHAN_KEY == "YOUR_SERVERCHAN_KEY_HERE":
+    if config.SERVERCHAN_KEY == "YOUR_SERVERCHAN_KEY_HERE":
         logger.warning("Server酱 key not configured, skipping push.")
         _print_jobs(jobs)
         return
@@ -33,7 +33,7 @@ def push_jobs(jobs: list[dict]):
 
 
 def _send(title: str, content: str):
-    url = SERVERCHAN_URL.format(key=SERVERCHAN_KEY)
+    url = SERVERCHAN_URL.format(key=config.SERVERCHAN_KEY)
     try:
         resp = requests.post(url, data={"title": title, "desp": content}, timeout=10)
         resp.raise_for_status()

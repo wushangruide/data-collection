@@ -117,10 +117,170 @@ def scrape_higheredjobs():
     return jobs
 
 
+# ── PostdocJobs.com ──────────────────────────────────────────────────────────
+
+def scrape_postdocjobs():
+    jobs = []
+    try:
+        url = "https://www.postdocjobs.com/posting/list"
+        soup = _get(url)
+        for item in soup.select("div.job-listing, article.posting, div.listing-item"):
+            a = item.find("a", href=True)
+            if not a:
+                continue
+            title = a.get_text(strip=True)
+            href = a.get("href", "")
+            link = f"https://www.postdocjobs.com{href}" if href.startswith("/") else href
+            loc_el = item.select_one(".location, .job-location, [class*='location']")
+            location = loc_el.get_text(strip=True) if loc_el else ""
+            if title:
+                jobs.append({"title": title, "url": link, "location": location, "source": "PostdocJobs"})
+    except Exception as e:
+        logger.error(f"PostdocJobs scrape failed: {e}")
+    return jobs
+
+
+# ── Academic Positions ────────────────────────────────────────────────────────
+
+def scrape_academic_positions():
+    jobs = []
+    try:
+        # Fetch CS + social sciences postdoc listings separately and combine
+        urls = [
+            ("https://academicpositions.com/jobs/position/post-doc/field/computer-science-mf", "CS"),
+            ("https://academicpositions.com/jobs/position/post-doc/field/social-science", "SocSci"),
+            ("https://academicpositions.com/jobs/position/post-doc/field/psychology", "Psychology"),
+        ]
+        seen = set()
+        for url, _ in urls:
+            soup = _get(url)
+            for item in soup.select("article.job, div.job-item, li.job-listing"):
+                a = item.select_one("h2 a, h3 a, a.job-title, a[href*='/ad/']")
+                if not a:
+                    continue
+                title = a.get_text(strip=True)
+                href = a.get("href", "")
+                link = f"https://academicpositions.com{href}" if href.startswith("/") else href
+                if link in seen:
+                    continue
+                seen.add(link)
+                loc_el = item.select_one(".location, .country, [class*='location']")
+                location = loc_el.get_text(strip=True) if loc_el else ""
+                if title:
+                    jobs.append({"title": title, "url": link, "location": location, "source": "AcademicPositions"})
+    except Exception as e:
+        logger.error(f"AcademicPositions scrape failed: {e}")
+    return jobs
+
+
+# ── Chronicle of Higher Education ────────────────────────────────────────────
+
+def scrape_chronicle():
+    jobs = []
+    try:
+        urls = [
+            "https://jobs.chronicle.com/jobs/social-and-behavioral-sciences/post-doc/",
+            "https://jobs.chronicle.com/jobs/information-technology/post-doc/",
+        ]
+        seen = set()
+        for url in urls:
+            soup = _get(url)
+            for item in soup.select("li.jlr, article.job, div.job-result, li[class*='result']"):
+                a = item.select_one("h2 a, h3 a, a.job-link, a[href*='/job/']")
+                if not a:
+                    continue
+                title = a.get_text(strip=True)
+                href = a.get("href", "")
+                link = f"https://jobs.chronicle.com{href}" if href.startswith("/") else href
+                if link in seen:
+                    continue
+                seen.add(link)
+                loc_el = item.select_one(".location, [class*='location']")
+                location = loc_el.get_text(strip=True) if loc_el else ""
+                if title:
+                    jobs.append({"title": title, "url": link, "location": location, "source": "ChronicleJobs"})
+    except Exception as e:
+        logger.error(f"Chronicle scrape failed: {e}")
+    return jobs
+
+
+# ── Inside Higher Ed ──────────────────────────────────────────────────────────
+
+def scrape_insidehighered():
+    jobs = []
+    try:
+        urls = [
+            "https://careers.insidehighered.com/jobs/social-sciences/postdoc/",
+            "https://careers.insidehighered.com/jobs/computer-science/postdoc/",
+        ]
+        seen = set()
+        for url in urls:
+            soup = _get(url)
+            for item in soup.select("li.jlr, article.job, div.job-result, div[class*='listing']"):
+                a = item.select_one("h2 a, h3 a, a[href*='/job/']")
+                if not a:
+                    continue
+                title = a.get_text(strip=True)
+                href = a.get("href", "")
+                link = f"https://careers.insidehighered.com{href}" if href.startswith("/") else href
+                if link in seen:
+                    continue
+                seen.add(link)
+                loc_el = item.select_one(".location, [class*='location']")
+                location = loc_el.get_text(strip=True) if loc_el else ""
+                if title:
+                    jobs.append({"title": title, "url": link, "location": location, "source": "InsideHigherEd"})
+    except Exception as e:
+        logger.error(f"InsideHigherEd scrape failed: {e}")
+    return jobs
+
+
+# ── THE UniJobs ───────────────────────────────────────────────────────────────
+
+def scrape_the_unijobs():
+    jobs = []
+    try:
+        urls = [
+            "https://www.timeshighereducation.com/unijobs/listings/computer-science/postdocs/",
+            "https://www.timeshighereducation.com/unijobs/listings/social-sciences/postdocs/",
+            "https://www.timeshighereducation.com/unijobs/listings/psychology/postdocs/",
+        ]
+        seen = set()
+        for url in urls:
+            soup = _get(url)
+            for item in soup.select("article, li.job, div.job-item, div[class*='listing']"):
+                a = item.select_one("h2 a, h3 a, a.job-title, a[href*='/unijobs/job/']")
+                if not a:
+                    continue
+                title = a.get_text(strip=True)
+                href = a.get("href", "")
+                link = f"https://www.timeshighereducation.com{href}" if href.startswith("/") else href
+                if link in seen:
+                    continue
+                seen.add(link)
+                loc_el = item.select_one(".location, [class*='location']")
+                location = loc_el.get_text(strip=True) if loc_el else ""
+                if title:
+                    jobs.append({"title": title, "url": link, "location": location, "source": "THEUniJobs"})
+    except Exception as e:
+        logger.error(f"THEUniJobs scrape failed: {e}")
+    return jobs
+
+
 def scrape_all():
     """Run all scrapers and return combined job list."""
     all_jobs = []
-    for fn in [scrape_academicjobsonline, scrape_jobs_ac_uk, scrape_nature_careers, scrape_higheredjobs]:
+    for fn in [
+        scrape_academicjobsonline,
+        scrape_jobs_ac_uk,
+        scrape_nature_careers,
+        scrape_higheredjobs,
+        scrape_postdocjobs,
+        scrape_academic_positions,
+        scrape_chronicle,
+        scrape_insidehighered,
+        scrape_the_unijobs,
+    ]:
         results = fn()
         logger.info(f"{fn.__name__}: {len(results)} jobs fetched")
         all_jobs.extend(results)
